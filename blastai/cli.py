@@ -2,6 +2,8 @@
 import os
 
 from dotenv import load_dotenv
+from security import safe_command
+
 os.environ["ANONYMIZED_TELEMETRY"] = "false"
 
 """CLI interface for BLAST."""
@@ -189,15 +191,14 @@ def serve(config: Optional[str], no_metrics_output: bool, server_port: int, web_
         if not (frontend_dir / 'node_modules').exists():
             print("Installing frontend dependencies...")
             try:
-                subprocess.run([npm_cmd, 'install'], cwd=frontend_dir, check=True, text=True)
+                safe_command.run(subprocess.run, [npm_cmd, 'install'], cwd=frontend_dir, check=True, text=True)
             except subprocess.CalledProcessError as e:
                 print(f"Error installing frontend dependencies: {e}")
                 return
 
         # Start frontend process
         try:
-            process = subprocess.Popen(
-                [npm_cmd, 'run', 'dev'],
+            process = safe_command.run(subprocess.Popen, [npm_cmd, 'run', 'dev'],
                 cwd=frontend_dir,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -421,7 +422,7 @@ def serve(config: Optional[str], no_metrics_output: bool, server_port: int, web_
                 # Install dependencies if needed
                 if not (frontend_dir / 'node_modules').exists():
                     try:
-                        subprocess.run([npm_cmd, 'install'], cwd=frontend_dir, check=True, text=True)
+                        safe_command.run(subprocess.run, [npm_cmd, 'install'], cwd=frontend_dir, check=True, text=True)
                     except subprocess.CalledProcessError as e:
                         print(f"Error installing frontend dependencies: {e}")
                         await run_cli_server(server, actual_server_port)
@@ -434,8 +435,7 @@ def serve(config: Optional[str], no_metrics_output: bool, server_port: int, web_
                     frontend_env['NEXT_PUBLIC_SERVER_PORT'] = str(actual_server_port)
                     frontend_env['PORT'] = str(actual_web_port)
                     
-                    process = subprocess.Popen(
-                        [npm_cmd, 'run', 'dev', f'--port={actual_web_port}'],
+                    process = safe_command.run(subprocess.Popen, [npm_cmd, 'run', 'dev', f'--port={actual_web_port}'],
                         cwd=frontend_dir,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT,
@@ -589,7 +589,7 @@ def install_browsers(quiet: bool = False):
             return
             
         # First install browsers
-        subprocess.run([sys.executable, '-m', 'playwright', 'install', 'chromium'], check=True)
+        safe_command.run(subprocess.run, [sys.executable, '-m', 'playwright', 'install', 'chromium'], check=True)
         if not quiet:
             print("Successfully installed Playwright browsers")
         
@@ -597,7 +597,7 @@ def install_browsers(quiet: bool = False):
         if platform.system() == 'Linux':
             try:
                 # Try using playwright install-deps first
-                subprocess.run([sys.executable, '-m', 'playwright', 'install-deps'], check=True)
+                safe_command.run(subprocess.run, [sys.executable, '-m', 'playwright', 'install-deps'], check=True)
             except subprocess.CalledProcessError:
                 # If that fails, try apt-get directly
                 try:
